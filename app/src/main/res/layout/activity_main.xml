@@ -9,46 +9,15 @@
     android:gravity="center_horizontal"
     tools:context=".MainActivity">
 
-    <!--  BLE availability text indicator  -->
     <TextView
-        android:id="@+id/textViewAvailabilityBle"
+        android:id="@+id/textViewStatusBle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="" />
-
-    <ImageView
-        android:id="@+id/imageViewBle"
-        android:layout_width="100dp"
-        android:layout_height="100dp" />
+        android:text=""/>
 
     <Button
-        android:id="@+id/buttonOnBle"
+        android:id="@+id/buttonBruh"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Turn On"/>
-
-    <Button
-        android:id="@+id/buttonOffBle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Turn Off"/>
-
-    <Button
-        android:id="@+id/buttonDiscoverableBle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Make Phone Discoverable"/>
-
-    <Button
-        android:id="@+id/buttonGetPairedBle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Get Paired Devices"/>
-
-    <!--  BLE paired devices text indicator  -->
-    <TextView
-        android:id="@+id/textViewPairedBle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="" />
+        android:text="bruh"/>
 </LinearLayout>

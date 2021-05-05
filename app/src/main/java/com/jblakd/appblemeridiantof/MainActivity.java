@@ -2,14 +2,26 @@ package com.jblakd.appblemeridiantof;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,124 +30,86 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BT = 0;
-    private static final int REQUEST_DISCOVER_BT = 1;
+    private static final long SCAN_PERIOD_MS = 5000;
 
-    TextView textViewAvailabilityBle, textViewPairedBle;
-    ImageView imageViewBle;
-    Button buttonOnBle, buttonOffBle, buttonDiscoverableBle, buttonGetPairedBle;
-
-    BluetoothAdapter bluetoothAdapter;
+    Button buttonBruh;
+    private BluetoothAdapter bluetoothAdapter;
+    private BluetoothLeScanner bluetoothLeScanner;
+    private boolean isBluetoothScanning;
+    private Handler bluetoothHandler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        textViewAvailabilityBle  = findViewById(R.id.textViewAvailabilityBle);
-        textViewPairedBle        = findViewById(R.id.textViewPairedBle);
-        imageViewBle             = findViewById(R.id.imageViewBle);
-        buttonOnBle              = findViewById(R.id.buttonOnBle);
-        buttonOffBle             = findViewById(R.id.buttonOffBle);
-        buttonDiscoverableBle    = findViewById(R.id.buttonDiscoverableBle);
-        buttonGetPairedBle       = findViewById(R.id.buttonGetPairedBle);
+        buttonBruh = findViewById(R.id.buttonBruh);
 
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-        // Check whether BLE is available
-        if (bluetoothAdapter == null) {
-            textViewAvailabilityBle.setText("Bluetooth is not available.");
-        } else {
-            textViewAvailabilityBle.setText("Bluetooth is available.");
+        // Initialise the BLE adapter
+        final BluetoothManager bluetoothManager = getSystemService(BluetoothManager.class);
+        bluetoothAdapter = null;
+        if (bluetoothManager != null)  {
+            bluetoothAdapter = bluetoothManager.getAdapter();
+            if (bluetoothAdapter != null) {
+                System.out.println("bluetoothManager.getAdapter() successful.");
+            } else {
+                System.out.println("bluetoothManager.getAdapter() not successful.");
+            }
         }
 
-        // Set image according to BLE status (on or off)
-        if (bluetoothAdapter.isEnabled()) {
-            imageViewBle.setImageResource(R.drawable.ic_action_on);
-        } else {
-            imageViewBle.setImageResource(R.drawable.ic_action_off);
+        if (bluetoothAdapter != null) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+            System.out.println("Commencing BLE Device Scan...");
+            scanBluetoothDevice();
         }
 
-        // buttonOnBle onClick listener
-        buttonOnBle.setOnClickListener(new View.OnClickListener() {
+
+        //***************************** Test Button *********************************************//
+        buttonBruh.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!bluetoothAdapter.isEnabled()) {
-                    showToast("Turning on Bluetooth...");
-
-                    // Intent to turn on Bluetooth
-                    Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                    startActivityForResult(intent, REQUEST_ENABLE_BT);
-                } else {
-                    showToast("Bluetooth is already on.");
-                }
+                showToast("Bruh");
             }
         });
+    }
 
-        // buttonOffBle onClick listener
-        buttonOffBle.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (bluetoothAdapter.isEnabled()) {
-                    bluetoothAdapter.disable();
-                    showToast("Turning Bluetooth off...");
-                    imageViewBle.setImageResource(R.drawable.ic_action_off);
-                } else {
-                    showToast("Bluetooth is already off.");
-                }
-            }
-        });
-
-        // buttonDiscoverableBle onClick listener
-        buttonDiscoverableBle.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!bluetoothAdapter.isDiscovering()) {
-                    showToast("Making your device discoverable...");
-                    Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-                    startActivityForResult(intent, REQUEST_DISCOVER_BT);
-                }
-            }
-        });
-
-        // buttonGetPairedBle onClick listener
-        buttonGetPairedBle.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (bluetoothAdapter.isEnabled()) {
-                    textViewPairedBle.setText("Paired Devices:");
-
-                    Set<BluetoothDevice> devices = bluetoothAdapter.getBondedDevices();
-
-                    for (BluetoothDevice device: devices) {
-                        textViewPairedBle.append("\nDevice: " + device.getName() + ", " + device);
+    private void scanBluetoothDevice() {
+        System.out.println("scanBluetoothDevice() entered.");
+        if (bluetoothLeScanner != null) {
+            if (!isBluetoothScanning) {
+                // Stop scanning after the defined period
+                bluetoothHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        isBluetoothScanning = false;
+                        bluetoothLeScanner.stopScan(leScanCallback);
                     }
-                } else {
-                    // Bluetooth is off and cannot get paired devices
-                    showToast("First turn on Bluetooth to get paired devices.");
-                }
+                }, SCAN_PERIOD_MS);
+
+                isBluetoothScanning = true;
+                bluetoothLeScanner.startScan(leScanCallback);
+                System.out.println("Scanning started.");
+            } else {
+                isBluetoothScanning = false;
+                bluetoothLeScanner.stopScan(leScanCallback);
+                System.out.println("Scanning stopped.");
             }
-        });
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        switch (requestCode) {
-            case REQUEST_ENABLE_BT:
-                if (resultCode == RESULT_OK) {
-                    // Bluetooth is on
-                    imageViewBle.setImageResource(R.drawable.ic_action_on);
-                    showToast("Bluetooth is on.");
-                } else {
-                    // User not allowed to turn bluetooth on
-                    showToast("Bluetooth unable to be turned on.");
-                }
-                break;
-            default:
-                break;
         }
-        super.onActivityResult(requestCode, resultCode, data);
     }
 
+    private ScanCallback leScanCallback =
+            new ScanCallback() {
+                @Override
+                public void onScanResult(int callbackType, ScanResult result) {
+                    super.onScanResult(callbackType, result);
+//                    if (result.getDevice().getName().equals("N_Meridian")) {
+                    System.out.println("Scan result: " + result.getDevice().getName());
+//                    }
+//                    showToast("Scan result" + result.toString());
+                }
+            };
     // Toast message function
     private void showToast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
