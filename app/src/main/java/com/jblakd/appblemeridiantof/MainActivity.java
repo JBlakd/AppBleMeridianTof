@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_ENABLE_BT = 0;
     private static final long SCAN_PERIOD_MS = 5000;
 
-    Button buttonBruh;
+    Button buttonStartBleScan;
     TextView textViewStatusBle;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
@@ -34,23 +34,23 @@ public class MainActivity extends AppCompatActivity {
     private Handler bluetoothHandler = new Handler();
 
     // These lists hold the BLE devices found during scanning and their names
-    List<BluetoothDevice> mBluetoothDevice;
-    List<String> mBleName;
+    List<BluetoothDevice> listBluetoothDevice;
+    List<String> listBluetoothDeviceName;
 
     // The array adapter will be used to display the list of devices found during scanning
-    ArrayAdapter<String> mBleArrayAdapter;
+    ArrayAdapter<String> arrayAdapterBleDevice;
 
     // This is the list view in the layout that holds the items
-    ListView BleDeviceList;
+    ListView listViewBleDevice;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        buttonBruh = findViewById(R.id.buttonBruh);
+        buttonStartBleScan = findViewById(R.id.buttonStartBleScan);
         textViewStatusBle = findViewById(R.id.textViewStatusBle);
-        BleDeviceList = findViewById(R.id.BleDeviceList);
+        listViewBleDevice = findViewById(R.id.BleDeviceList);
 
         // Initialise the BLE adapter
         final BluetoothManager bluetoothManager = getSystemService(BluetoothManager.class);
@@ -65,25 +65,25 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Create arrays to hold BLE info found during scanning
-        mBluetoothDevice = new ArrayList<>();
-        mBleName = new ArrayList<>();
+        listBluetoothDevice = new ArrayList<>();
+        listBluetoothDeviceName = new ArrayList<>();
         // Create an array adapter and associate it with the list in the layout that displays the values
-        mBleArrayAdapter = new ArrayAdapter<>(this, R.layout.ble_device_list, R.id.ble_name, mBleName);
-        BleDeviceList.setAdapter(mBleArrayAdapter);
+        arrayAdapterBleDevice = new ArrayAdapter<>(this, R.layout.ble_device_list, R.id.ble_name, listBluetoothDeviceName);
+        listViewBleDevice.setAdapter(arrayAdapterBleDevice);
 
-        if (bluetoothAdapter != null) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-            bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-            System.out.println("Commencing BLE Device Scan...");
-            scanBluetoothDevice();
-        }
 
-        //***************************** Test Button *********************************************//
-        buttonBruh.setOnClickListener(new View.OnClickListener() {
+
+        //***************************** Start BLE Scan Button *********************************************//
+        buttonStartBleScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showToast("Bruh");
+                if (bluetoothAdapter != null) {
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                    bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+                    scanBluetoothDevice();
+                }
+                showToast("Scanning for devices...");
             }
         });
     }
@@ -117,12 +117,12 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onScanResult(int callbackType, ScanResult result) {
                     super.onScanResult(callbackType, result);
-                        if(!mBluetoothDevice.contains(result.getDevice())) {
-                            mBluetoothDevice.add(result.getDevice());
+                        if(!listBluetoothDevice.contains(result.getDevice())) {
+                            listBluetoothDevice.add(result.getDevice());
                             if (result.getDevice().getName() != null) {
-                                mBleName.add(result.getDevice().getName());
+                                listBluetoothDeviceName.add(result.getDevice().getName());
                             }
-                            mBleArrayAdapter.notifyDataSetChanged(); // Update the list on the screen
+                            arrayAdapterBleDevice.notifyDataSetChanged(); // Update the list on the screen
                         }
                 }
             };
