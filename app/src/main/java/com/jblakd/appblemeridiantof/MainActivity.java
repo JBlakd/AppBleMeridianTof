@@ -55,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
     // This is the list view in the layout that holds the items
     ListView listViewBleDevice;
 
+    int middleFrameCount = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -196,7 +198,20 @@ public class MainActivity extends AppCompatActivity {
             }
 //            System.out.println("Characteristic " + characteristic.getUuid().toString() + " changed.");
             byte[] value = characteristic.getValue();
-            System.out.println(value.length);
+
+            if (String.format("%x", value[0]).equals("54")) {
+                if (String.format("%x", value[1]).equals("7b")) {
+                    System.out.println("startFrame");
+                    middleFrameCount = 0;
+                }
+            } else if (String.format("%x", value[value.length-1]).equals("44")) {
+                if (String.format("%x", value[value.length-2]).equals("7d")) {
+                    System.out.println("endFrame");
+                }
+            } else {
+                middleFrameCount += 1;
+                System.out.println("middleFrame " + middleFrameCount);
+            }
         }
     };
 
