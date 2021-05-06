@@ -9,20 +9,14 @@
     android:gravity="center_horizontal"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/textViewStatusBle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text=""/>
-
     <ListView
         android:id="@+id/BleDeviceList"
         android:layout_width="match_parent"
-        android:layout_height="642dp" />
+        android:layout_height="667dp" />
 
     <Button
         android:id="@+id/buttonStartBleScan"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Scan For Devices"/>
+        android:text="Scan For Devices" />
 </LinearLayout>

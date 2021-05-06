@@ -12,6 +12,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -27,7 +28,6 @@ public class MainActivity extends AppCompatActivity {
     private static final long SCAN_PERIOD_MS = 5000;
 
     Button buttonStartBleScan;
-    TextView textViewStatusBle;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
     private boolean isBluetoothScanning;
@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
     // The array adapter will be used to display the list of devices found during scanning
     ArrayAdapter<String> arrayAdapterBleDevice;
+//    ArrayAdapter<BluetoothDevice> arrayAdapterBleDevice;
 
     // This is the list view in the layout that holds the items
     ListView listViewBleDevice;
@@ -49,7 +50,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         buttonStartBleScan = findViewById(R.id.buttonStartBleScan);
-        textViewStatusBle = findViewById(R.id.textViewStatusBle);
         listViewBleDevice = findViewById(R.id.BleDeviceList);
 
         // Initialise the BLE adapter
@@ -69,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
         listBluetoothDeviceName = new ArrayList<>();
         // Create an array adapter and associate it with the list in the layout that displays the values
         arrayAdapterBleDevice = new ArrayAdapter<>(this, R.layout.ble_device_list, R.id.ble_name, listBluetoothDeviceName);
+//        arrayAdapterBleDevice = new ArrayAdapter<>(this, R.layout.ble_device_list, R.id.ble_name, listBluetoothDevice);
         listViewBleDevice.setAdapter(arrayAdapterBleDevice);
 
 
@@ -84,6 +85,14 @@ public class MainActivity extends AppCompatActivity {
                     scanBluetoothDevice();
                 }
                 showToast("Scanning for devices...");
+            }
+        });
+
+        listViewBleDevice.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                System.out.println(listBluetoothDevice.get(position).getName() + " - " + listBluetoothDevice.get(position).getAddress());
+                showToast(listBluetoothDevice.get(position).getName() + " - " + listBluetoothDevice.get(position).getAddress());
             }
         });
     }
@@ -118,11 +127,11 @@ public class MainActivity extends AppCompatActivity {
                 public void onScanResult(int callbackType, ScanResult result) {
                     super.onScanResult(callbackType, result);
                         if(!listBluetoothDevice.contains(result.getDevice())) {
-                            listBluetoothDevice.add(result.getDevice());
                             if (result.getDevice().getName() != null) {
+                                listBluetoothDevice.add(result.getDevice());
                                 listBluetoothDeviceName.add(result.getDevice().getName());
+                                arrayAdapterBleDevice.notifyDataSetChanged(); // Update the list on the screen
                             }
-                            arrayAdapterBleDevice.notifyDataSetChanged(); // Update the list on the screen
                         }
                 }
             };
@@ -131,3 +140,5 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 }
+
+// DD:2C:22:52:77:D9 is N_Meridian
