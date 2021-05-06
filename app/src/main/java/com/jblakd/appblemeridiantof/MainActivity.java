@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
@@ -39,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private Handler bluetoothHandler = new Handler();
     BluetoothGatt bluetoothGatt;
     BluetoothGattService bluetoothGattService;
+    BluetoothGattCharacteristic bluetoothGattCharacteristic;
 
     // These lists hold the BLE devices found during scanning and their names
     List<BluetoothDevice> listBluetoothDevice;
@@ -50,23 +52,6 @@ public class MainActivity extends AppCompatActivity {
 
     // This is the list view in the layout that holds the items
     ListView listViewBleDevice;
-
-    // ***************************************************************
-    private int mConnectionState = STATE_DISCONNECTED;
-    private static final int STATE_DISCONNECTED = 0;
-    private static final int STATE_CONNECTING = 1;
-    private static final int STATE_CONNECTED = 2;
-    public final static String ACTION_GATT_CONNECTED =
-            "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
-    public final static String ACTION_GATT_DISCONNECTED =
-            "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
-    public final static String ACTION_GATT_SERVICES_DISCOVERED =
-            "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
-    public final static String ACTION_DATA_AVAILABLE =
-            "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
-    public final static String EXTRA_DATA =
-            "com.example.bluetooth.le.EXTRA_DATA";
-    // ***************************************************************
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -168,10 +153,8 @@ public class MainActivity extends AppCompatActivity {
             super.onConnectionStateChange(gatt, status, newState);
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 System.out.println("Connected to GATT server.");
-
                 gatt.discoverServices();
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-
                 System.out.println("Disconnected from GATT server.");
             }
         }
@@ -181,12 +164,19 @@ public class MainActivity extends AppCompatActivity {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 // services are discoverd
                 System.out.println("Discovered GATT services.");
-                bluetoothGattService = gatt.getService(UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e"));
 
+                bluetoothGattService = gatt.getService(UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e"));
                 if (bluetoothGattService != null) {
-                    System.out.println("Successfully got UUID with value " + bluetoothGattService.getUuid().toString());
+                    System.out.println("Successfully got service with UUID: " + bluetoothGattService.getUuid().toString());
                 } else {
                     System.out.println("Service 6e400001-b5a3-f393-e0a9-e50e24dcca9e not found");
+                }
+
+                bluetoothGattCharacteristic = bluetoothGattService.getCharacteristic(UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e"));
+                if (bluetoothGattCharacteristic != null) {
+                    System.out.println("Successfully got characteristic with UUID: " + bluetoothGattCharacteristic.getUuid().toString());
+                } else {
+                    System.out.println("Characteristic 6e400003-b5a3-f393-e0a9-e50e24dcca9e not found");
                 }
             }
         }
