@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
@@ -41,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     BluetoothGatt bluetoothGatt;
     BluetoothGattService bluetoothGattService;
     BluetoothGattCharacteristic bluetoothGattCharacteristic;
+    BluetoothGattDescriptor bluetoothGattDescriptor;
 
     // These lists hold the BLE devices found during scanning and their names
     List<BluetoothDevice> listBluetoothDevice;
@@ -175,10 +177,26 @@ public class MainActivity extends AppCompatActivity {
                 bluetoothGattCharacteristic = bluetoothGattService.getCharacteristic(UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e"));
                 if (bluetoothGattCharacteristic != null) {
                     System.out.println("Successfully got characteristic with UUID: " + bluetoothGattCharacteristic.getUuid().toString());
+                    // Enable local notifications
+                    gatt.setCharacteristicNotification(bluetoothGattCharacteristic, true);
+                    // Enable remote notifications
+                    bluetoothGattDescriptor = bluetoothGattCharacteristic.getDescriptors().get(0);
+                    bluetoothGattDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                    gatt.writeDescriptor(bluetoothGattDescriptor);
                 } else {
                     System.out.println("Characteristic 6e400003-b5a3-f393-e0a9-e50e24dcca9e not found");
                 }
             }
+        }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            if (!(characteristic.getUuid().equals(bluetoothGattCharacteristic.getUuid()))) {
+                return;
+            }
+//            System.out.println("Characteristic " + characteristic.getUuid().toString() + " changed.");
+            byte[] value = characteristic.getValue();
+            System.out.println(value.length);
         }
     };
 
@@ -189,3 +207,4 @@ public class MainActivity extends AppCompatActivity {
 }
 
 // DD:2C:22:52:77:D9 is N_Meridian
+// Descriptor: 00002902-0000-1000-8000-00805f9b34fb
