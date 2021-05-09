@@ -15,6 +15,7 @@ import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
@@ -35,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private static final long SCAN_PERIOD_MS = 5000;
 
     Button buttonStartBleScan;
+    TextView textViewScanStatus;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
     private boolean isBluetoothScanning;
@@ -64,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
 
         buttonStartBleScan = findViewById(R.id.buttonStartBleScan);
         listViewBleDevice = findViewById(R.id.BleDeviceList);
+        textViewScanStatus = findViewById(R.id.textViewScanStatus);
 
         // Initialise the BLE adapter
         final BluetoothManager bluetoothManager = getSystemService(BluetoothManager.class);
@@ -97,16 +100,17 @@ public class MainActivity extends AppCompatActivity {
                     bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
                     scanBluetoothDevice();
                 }
-                showToast("Scanning for devices...");
             }
         });
 
+        //************************** ListView Item Click Listener *****************************************//
         listViewBleDevice.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 bluetoothLeScanner.stopScan(leScanCallback);
-                System.out.println(listBluetoothDevice.get(position).getName() + " - " + listBluetoothDevice.get(position).getAddress());
-
+                textViewScanStatus.setText("");
+                buttonStartBleScan.setText("Start Scan");
+//                System.out.println(listBluetoothDevice.get(position).getName() + " - " + listBluetoothDevice.get(position).getAddress());
                 bluetoothGatt = listBluetoothDevice.get(position).connectGatt(getApplicationContext(), false, gattCallback);
             }
         });
@@ -122,16 +126,20 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         isBluetoothScanning = false;
                         bluetoothLeScanner.stopScan(leScanCallback);
+                        textViewScanStatus.setText("");
+                        buttonStartBleScan.setText("Start Scan");
                     }
                 }, SCAN_PERIOD_MS);
 
                 isBluetoothScanning = true;
                 bluetoothLeScanner.startScan(leScanCallback);
-                System.out.println("Scanning started.");
+                textViewScanStatus.setText("Scanning...");
+                buttonStartBleScan.setText("Stop Scan");
             } else {
                 isBluetoothScanning = false;
                 bluetoothLeScanner.stopScan(leScanCallback);
-                System.out.println("Scanning stopped.");
+                textViewScanStatus.setText("");
+                buttonStartBleScan.setText("Start Scan");
             }
         }
     }
