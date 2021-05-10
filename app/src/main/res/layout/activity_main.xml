@@ -9,16 +9,39 @@
     android:gravity="center_horizontal"
     tools:context=".MainActivity">
 
-    <ListView
+        <ListView
         android:id="@+id/BleDeviceList"
-        android:layout_width="396dp"
-        android:layout_height="619dp"
+        android:layout_width="354dp"
+        android:layout_height="560dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.466"
+        app:layout_constraintHorizontal_bias="0.482"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintVertical_bias="0.331" />
+
+    <TextView
+        android:id="@+id/textViewTofDistanceTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="28dp"
+        android:layout_marginBottom="120dp"
+        android:text="TOF Distance (mm)"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/textViewTofDistance"
+        android:layout_width="121dp"
+        android:layout_height="43dp"
+        android:layout_marginStart="28dp"
+        android:gravity="center"
+        android:text=""
+        android:textSize="30sp"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textViewTofDistanceTitle" />
 
     <Button
         android:id="@+id/buttonMultiPurpose"
@@ -44,4 +67,17 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/textViewDeviceListTitle"
+        android:layout_width="355dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="28dp"
+        android:layout_marginTop="8dp"
+        android:text="Discovered Devices:"
+        android:textSize="36sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>

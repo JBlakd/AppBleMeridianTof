@@ -40,8 +40,21 @@ public class MainActivity extends AppCompatActivity {
     private static final int DEVICE_CONNECTED_VIEWS_CODE = 1;
     private int currentViewsCode = SELECT_DEVICES_VIEWS_CODE;
 
+    private static final int START_FRAME_TYPE = 0;
+    private static final int MIDDLE_FRAME_TYPE = 1;
+    private static final int END_FRAME_TYPE = 2;
+    private int currentFrameType;
+
+    private boolean startFrameReceived;
+    private static final int TOF_OUT_OF_RANGE = 0;
+    private long tofDistance;
+
     Button buttonMultiPurpose;
     TextView textViewScanStatus;
+    TextView textViewDeviceListTitle;
+    TextView textViewTofDistanceTitle;
+    TextView textViewTofDistance;
+
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
     private boolean isBluetoothScanning;
@@ -72,6 +85,9 @@ public class MainActivity extends AppCompatActivity {
         buttonMultiPurpose = findViewById(R.id.buttonMultiPurpose);
         listViewBleDevice = findViewById(R.id.BleDeviceList);
         textViewScanStatus = findViewById(R.id.textViewScanStatus);
+        textViewDeviceListTitle = findViewById(R.id.textViewDeviceListTitle);
+        textViewTofDistanceTitle = findViewById(R.id.textViewTofDistanceTitle);
+        textViewTofDistance = findViewById(R.id.textViewTofDistance);
 
         // Initialise the BLE adapter
         final BluetoothManager bluetoothManager = getSystemService(BluetoothManager.class);
@@ -226,21 +242,39 @@ public class MainActivity extends AppCompatActivity {
             if (!(characteristic.getUuid().equals(bluetoothGattCharacteristic.getUuid()))) {
                 return;
             }
-//            System.out.println("Characteristic " + characteristic.getUuid().toString() + " changed.");
+
+            // Buffer
             byte[] value = characteristic.getValue();
 
+            // Frame classification
             if (String.format("%x", value[0]).equals("54")) {
                 if (String.format("%x", value[1]).equals("7b")) {
                     System.out.println("startFrame");
+                    currentFrameType = START_FRAME_TYPE;
                     middleFrameCount = 0;
                 }
             } else if (String.format("%x", value[value.length-1]).equals("44")) {
                 if (String.format("%x", value[value.length-2]).equals("7d")) {
                     System.out.println("endFrame");
+                    currentFrameType = END_FRAME_TYPE;
                 }
             } else {
                 middleFrameCount += 1;
                 System.out.println("middleFrame " + middleFrameCount);
+                currentFrameType = MIDDLE_FRAME_TYPE;
+            }
+
+            if (currentFrameType == START_FRAME_TYPE) {
+                // TODO: Implement warning message ""Did not receive all frames. Please disable some other Bluetooth devices free up some bandwidth."
+
+                startFrameReceived = true;
+                tofDistance = getUint16(value, 2);
+                System.out.println("tofDistance: " + tofDistance);
+            }
+
+            // Just-before-end code
+            if (currentFrameType == END_FRAME_TYPE) {
+                textViewTofDistance.setText(String.valueOf(tofDistance));
             }
         }
     };
@@ -249,15 +283,40 @@ public class MainActivity extends AppCompatActivity {
         currentViewsCode = viewsCode;
 
         if (currentViewsCode == SELECT_DEVICES_VIEWS_CODE) {
+            textViewTofDistanceTitle.setVisibility(View.GONE);
+            textViewTofDistance.setVisibility(View.GONE);
+
             listViewBleDevice.setVisibility(View.VISIBLE);
             textViewScanStatus.setVisibility(View.VISIBLE);
+            textViewDeviceListTitle.setVisibility(View.VISIBLE);
+
             buttonMultiPurpose.setText("Start/stop scan");
+            setTitle("Please connect to N_Meridian");
         } else if (currentViewsCode == DEVICE_CONNECTED_VIEWS_CODE) {
             listViewBleDevice.setVisibility(View.GONE);
             textViewScanStatus.setVisibility(View.GONE);
+            textViewDeviceListTitle.setVisibility(View.GONE);
+
+            textViewTofDistanceTitle.setVisibility(View.VISIBLE);
+            textViewTofDistance.setVisibility(View.VISIBLE);
+
             buttonMultiPurpose.setText("Disconnect from N_Meridian");
+            setTitle("Connected to: N_Meridian");
         }
     }
+
+    public long getUint16(byte[] data, int startIndex) {
+        long result = 0;
+        result = result | (data[startIndex] << 8);
+        result = result | data[startIndex + 1];
+
+        if (result < 0) {
+            return 0;
+        }
+        
+        return result;
+    }
+
     // Toast message function
     private void showToast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
