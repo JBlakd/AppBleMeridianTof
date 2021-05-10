@@ -2,6 +2,7 @@ package com.jblakd.appblemeridiantof;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -34,6 +35,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BT = 0;
     private static final long SCAN_PERIOD_MS = 5000;
+    private static final int SELECT_DEVICES_VIEWS_CODE = 0;
+    private static final int DEVICE_CONNECTED_VIEWS_CODE = 1;
 
     Button buttonStartBleScan;
     TextView textViewScanStatus;
@@ -105,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
 
         //************************** ListView Item Click Listener *****************************************//
         listViewBleDevice.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @SuppressLint("SetTextI18n")
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 bluetoothLeScanner.stopScan(leScanCallback);
@@ -115,9 +119,10 @@ public class MainActivity extends AppCompatActivity {
                     showToast("Device is not N_Meridian");
                     return;
                 }
-                showToast("Connected to: " + listBluetoothDevice.get(position).getName());
+//                showToast("Connected to: " + listBluetoothDevice.get(position).getName());
                 bluetoothGatt = listBluetoothDevice.get(position).connectGatt(getApplicationContext(), false, gattCallback);
 
+                toggleViews(DEVICE_CONNECTED_VIEWS_CODE);
             }
         });
     }
@@ -229,6 +234,15 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private void toggleViews(int viewsCode) {
+        if (viewsCode == SELECT_DEVICES_VIEWS_CODE) {
+            listViewBleDevice.setVisibility(View.VISIBLE);
+            textViewScanStatus.setVisibility(View.VISIBLE);
+        } else if (viewsCode == DEVICE_CONNECTED_VIEWS_CODE) {
+            listViewBleDevice.setVisibility(View.GONE);
+            textViewScanStatus.setVisibility(View.GONE);
+        }
+    }
     // Toast message function
     private void showToast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
