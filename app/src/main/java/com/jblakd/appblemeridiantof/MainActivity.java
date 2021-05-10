@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean startFrameReceived;
     private static final int TOF_OUT_OF_RANGE = 0;
-    private long tofDistance;
+    private int tofDistance;
 
     Button buttonMultiPurpose;
     TextView textViewScanStatus;
@@ -268,8 +268,8 @@ public class MainActivity extends AppCompatActivity {
                 // TODO: Implement warning message ""Did not receive all frames. Please disable some other Bluetooth devices free up some bandwidth."
 
                 startFrameReceived = true;
-                tofDistance = getUint16(value, 2);
-                System.out.println("tofDistance: " + tofDistance);
+                tofDistance = getInt16(value, 2);
+//                System.out.println("tofDistance: " + tofDistance);
             }
 
             // Just-before-end code
@@ -305,17 +305,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public long getUint16(byte[] data, int startIndex) {
-        long result = 0;
-        result = result | (data[startIndex] << 8);
-        result = result | data[startIndex + 1];
+    public int getInt16(byte[] data, int startIndex) {
+        int result = 0;
+        result = result | ((data[startIndex] & 0xFF) << 8);
+        result = result | (data[startIndex + 1] & 0xFF);
 
-        if (result < 0) {
-            return 0;
-        }
-        
         return result;
     }
+
+//    public float normaliseRange()
 
     // Toast message function
     private void showToast(String msg) {
