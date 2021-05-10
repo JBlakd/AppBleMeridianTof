@@ -35,10 +35,12 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BT = 0;
     private static final long SCAN_PERIOD_MS = 5000;
+
     private static final int SELECT_DEVICES_VIEWS_CODE = 0;
     private static final int DEVICE_CONNECTED_VIEWS_CODE = 1;
+    private int currentViewsCode = SELECT_DEVICES_VIEWS_CODE;
 
-    Button buttonStartBleScan;
+    Button buttonMultiPurpose;
     TextView textViewScanStatus;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
@@ -67,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        buttonStartBleScan = findViewById(R.id.buttonStartBleScan);
+        buttonMultiPurpose = findViewById(R.id.buttonMultiPurpose);
         listViewBleDevice = findViewById(R.id.BleDeviceList);
         textViewScanStatus = findViewById(R.id.textViewScanStatus);
 
@@ -93,15 +95,22 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        //***************************** Start BLE Scan Button *********************************************//
-        buttonStartBleScan.setOnClickListener(new View.OnClickListener() {
+        //***************************** Multi-Purpose Button *********************************************//
+        buttonMultiPurpose.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (bluetoothAdapter != null) {
-                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-                    bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-                    scanBluetoothDevice();
+                if (currentViewsCode == SELECT_DEVICES_VIEWS_CODE) {
+                    if (bluetoothAdapter != null) {
+                        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                        startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                        bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+                        scanBluetoothDevice();
+                    }
+                }
+                if (currentViewsCode == DEVICE_CONNECTED_VIEWS_CODE) {
+                    bluetoothGatt.disconnect();
+                    bluetoothGatt.close();
+                    toggleViews(SELECT_DEVICES_VIEWS_CODE);
                 }
             }
         });
@@ -113,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 bluetoothLeScanner.stopScan(leScanCallback);
                 textViewScanStatus.setText(listBluetoothDevice.size() + " device(s) found. Try again?");
-                buttonStartBleScan.setText("Start Scan");
+                buttonMultiPurpose.setText("Start/stop scan");
                 // Implement more rigorous checks here
                 if (!(listBluetoothDevice.get(position).getName().equals("N_Meridian"))) {
                     showToast("Device is not N_Meridian");
@@ -138,19 +147,21 @@ public class MainActivity extends AppCompatActivity {
                         isBluetoothScanning = false;
                         bluetoothLeScanner.stopScan(leScanCallback);
                         textViewScanStatus.setText(listBluetoothDevice.size() + " device(s) found. Try again?");
-                        buttonStartBleScan.setText("Start Scan");
+                        if (currentViewsCode == SELECT_DEVICES_VIEWS_CODE) {
+                            buttonMultiPurpose.setText("Start/stop scan");
+                        }
                     }
                 }, SCAN_PERIOD_MS);
 
                 isBluetoothScanning = true;
                 bluetoothLeScanner.startScan(leScanCallback);
-                textViewScanStatus.setText("Scanning...");
-                buttonStartBleScan.setText("Stop Scan");
+                textViewScanStatus.setText("Scanning for 5 seconds...");
+                buttonMultiPurpose.setText("Start/stop scan");
             } else {
                 isBluetoothScanning = false;
                 bluetoothLeScanner.stopScan(leScanCallback);
                 textViewScanStatus.setText(listBluetoothDevice.size() + " device(s) found. Try again?");
-                buttonStartBleScan.setText("Start Scan");
+                buttonMultiPurpose.setText("Start/stop scan");
             }
         }
     }
@@ -235,12 +246,16 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private void toggleViews(int viewsCode) {
-        if (viewsCode == SELECT_DEVICES_VIEWS_CODE) {
+        currentViewsCode = viewsCode;
+
+        if (currentViewsCode == SELECT_DEVICES_VIEWS_CODE) {
             listViewBleDevice.setVisibility(View.VISIBLE);
             textViewScanStatus.setVisibility(View.VISIBLE);
-        } else if (viewsCode == DEVICE_CONNECTED_VIEWS_CODE) {
+            buttonMultiPurpose.setText("Start/stop scan");
+        } else if (currentViewsCode == DEVICE_CONNECTED_VIEWS_CODE) {
             listViewBleDevice.setVisibility(View.GONE);
             textViewScanStatus.setVisibility(View.GONE);
+            buttonMultiPurpose.setText("Disconnect from N_Meridian");
         }
     }
     // Toast message function
