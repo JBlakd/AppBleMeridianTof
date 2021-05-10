@@ -108,10 +108,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 bluetoothLeScanner.stopScan(leScanCallback);
-                textViewScanStatus.setText("");
+                textViewScanStatus.setText(listBluetoothDevice.size() + " device(s) found. Try again?");
                 buttonStartBleScan.setText("Start Scan");
-//                System.out.println(listBluetoothDevice.get(position).getName() + " - " + listBluetoothDevice.get(position).getAddress());
+                // Implement more rigorous checks here
+                if (!(listBluetoothDevice.get(position).getName().equals("N_Meridian"))) {
+                    showToast("Device is not N_Meridian");
+                    return;
+                }
+                showToast("Connected to: " + listBluetoothDevice.get(position).getName());
                 bluetoothGatt = listBluetoothDevice.get(position).connectGatt(getApplicationContext(), false, gattCallback);
+
             }
         });
     }
@@ -126,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         isBluetoothScanning = false;
                         bluetoothLeScanner.stopScan(leScanCallback);
-                        textViewScanStatus.setText("");
+                        textViewScanStatus.setText(listBluetoothDevice.size() + " device(s) found. Try again?");
                         buttonStartBleScan.setText("Start Scan");
                     }
                 }, SCAN_PERIOD_MS);
@@ -138,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 isBluetoothScanning = false;
                 bluetoothLeScanner.stopScan(leScanCallback);
-                textViewScanStatus.setText("");
+                textViewScanStatus.setText(listBluetoothDevice.size() + " device(s) found. Try again?");
                 buttonStartBleScan.setText("Start Scan");
             }
         }

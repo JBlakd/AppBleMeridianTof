@@ -36,8 +36,8 @@
 
     <TextView
         android:id="@+id/textViewScanStatus"
-        android:layout_width="137dp"
-        android:layout_height="25dp"
+        android:layout_width="319dp"
+        android:layout_height="24dp"
         android:layout_marginBottom="72dp"
         android:gravity="center"
         android:text="Scan Ready"
