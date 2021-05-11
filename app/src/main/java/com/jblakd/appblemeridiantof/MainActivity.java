@@ -1,7 +1,10 @@
 package com.jblakd.appblemeridiantof;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -16,6 +19,7 @@ import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -33,11 +37,14 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int LOCATION_REQUEST_CODE = 123;
+
     private static final int REQUEST_ENABLE_BT = 0;
     private static final long SCAN_PERIOD_MS = 5000;
 
     private static final int SELECT_DEVICES_VIEWS_CODE = 0;
     private static final int DEVICE_CONNECTED_VIEWS_CODE = 1;
+    private static final int LOCATION_NOT_GRANTED_VIEWS_CODE = 2;
     private int currentViewsCode = SELECT_DEVICES_VIEWS_CODE;
 
     private static final int START_FRAME_TYPE = 0;
@@ -48,12 +55,14 @@ public class MainActivity extends AppCompatActivity {
     private boolean startFrameReceived;
     private static final int TOF_OUT_OF_RANGE = 0;
     private int tofDistance;
+//    private boolean endReached = true;
 
     Button buttonMultiPurpose;
     TextView textViewScanStatus;
     TextView textViewDeviceListTitle;
     TextView textViewTofDistanceTitle;
     TextView textViewTofDistance;
+    TextView textViewDebug;
 
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
@@ -88,6 +97,19 @@ public class MainActivity extends AppCompatActivity {
         textViewDeviceListTitle = findViewById(R.id.textViewDeviceListTitle);
         textViewTofDistanceTitle = findViewById(R.id.textViewTofDistanceTitle);
         textViewTofDistance = findViewById(R.id.textViewTofDistance);
+        textViewDebug = findViewById(R.id.textViewDebug);
+
+        // Check Location Permission
+        if (ActivityCompat.checkSelfPermission(getApplicationContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                || ActivityCompat.checkSelfPermission(getApplicationContext(),
+                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[] { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION },
+                    LOCATION_REQUEST_CODE);
+        }
+
+        toggleViews(SELECT_DEVICES_VIEWS_CODE);
 
         // Initialise the BLE adapter
         final BluetoothManager bluetoothManager = getSystemService(BluetoothManager.class);
@@ -137,7 +159,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 bluetoothLeScanner.stopScan(leScanCallback);
-                textViewScanStatus.setText(listBluetoothDevice.size() + " device(s) found. Try again?");
+                if (listBluetoothDevice.size() == 0) {
+                    textViewScanStatus.setText("0 devices found. Please grant location permissions if you haven't done so.");
+                } else if (listBluetoothDevice.size() == 1) {
+                    textViewScanStatus.setText(listBluetoothDevice.size() + " device found. Try again?");
+                } else {
+                    textViewScanStatus.setText(listBluetoothDevice.size() + " devices found. Try again?");
+                }
+
                 buttonMultiPurpose.setText("Start/stop scan");
                 // Implement more rigorous checks here
                 if (!(listBluetoothDevice.get(position).getName().equals("N_Meridian"))) {
@@ -162,7 +191,15 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         isBluetoothScanning = false;
                         bluetoothLeScanner.stopScan(leScanCallback);
-                        textViewScanStatus.setText(listBluetoothDevice.size() + " device(s) found. Try again?");
+
+                        if (listBluetoothDevice.size() == 0) {
+                            textViewScanStatus.setText("0 devices found. Please grant location permissions if you haven't done so.");
+                        } else if (listBluetoothDevice.size() == 1) {
+                            textViewScanStatus.setText(listBluetoothDevice.size() + " device found. Try again?");
+                        } else {
+                            textViewScanStatus.setText(listBluetoothDevice.size() + " devices found. Try again?");
+                        }
+
                         if (currentViewsCode == SELECT_DEVICES_VIEWS_CODE) {
                             buttonMultiPurpose.setText("Start/stop scan");
                         }
@@ -237,6 +274,18 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+//        public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+//            switch (requestCode) {
+//                case LOCATION_REQUEST_CODE:
+//                    if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                        // Permission is granted. Do nothing.
+//                    } else {
+//
+//                    }
+//                    return;
+//            }
+//        }
+
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             if (!(characteristic.getUuid().equals(bluetoothGattCharacteristic.getUuid()))) {
@@ -261,12 +310,15 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 middleFrameCount += 1;
                 System.out.println("middleFrame " + middleFrameCount);
+                textViewDebug.setText("middleFrame (" + middleFrameCount + "/40)");
                 currentFrameType = MIDDLE_FRAME_TYPE;
             }
 
             if (currentFrameType == START_FRAME_TYPE) {
-                // TODO: Implement warning message ""Did not receive all frames. Please disable some other Bluetooth devices free up some bandwidth."
-
+//                if (!endReached) {
+                    // TODO: provide not end Reached feedback
+//                }
+//                endReached = false;
                 startFrameReceived = true;
                 tofDistance = getInt16(value, 2);
 //                System.out.println("tofDistance: " + tofDistance);
@@ -274,7 +326,15 @@ public class MainActivity extends AppCompatActivity {
 
             // Just-before-end code
             if (currentFrameType == END_FRAME_TYPE) {
-                textViewTofDistance.setText(String.valueOf(tofDistance));
+//                endReached = true;
+
+                // Draw and update data
+                if (middleFrameCount == 40) {
+                    textViewTofDistance.setText(String.valueOf(tofDistance));
+                } else {
+                    textViewDebug.setText("Did not receive all frames.");
+                }
+                // Clear variables
             }
         }
     };
@@ -285,13 +345,14 @@ public class MainActivity extends AppCompatActivity {
         if (currentViewsCode == SELECT_DEVICES_VIEWS_CODE) {
             textViewTofDistanceTitle.setVisibility(View.GONE);
             textViewTofDistance.setVisibility(View.GONE);
+            textViewDebug.setVisibility(View.GONE);
 
             listViewBleDevice.setVisibility(View.VISIBLE);
             textViewScanStatus.setVisibility(View.VISIBLE);
             textViewDeviceListTitle.setVisibility(View.VISIBLE);
 
             buttonMultiPurpose.setText("Start/stop scan");
-            setTitle("Please connect to N_Meridian");
+//            setTitle("Please connect to N_Meridian");
         } else if (currentViewsCode == DEVICE_CONNECTED_VIEWS_CODE) {
             listViewBleDevice.setVisibility(View.GONE);
             textViewScanStatus.setVisibility(View.GONE);
@@ -299,9 +360,18 @@ public class MainActivity extends AppCompatActivity {
 
             textViewTofDistanceTitle.setVisibility(View.VISIBLE);
             textViewTofDistance.setVisibility(View.VISIBLE);
+            textViewDebug.setVisibility(View.VISIBLE);
 
             buttonMultiPurpose.setText("Disconnect from N_Meridian");
-            setTitle("Connected to: N_Meridian");
+//            setTitle("Connected to: N_Meridian");
+        } else if (currentViewsCode == LOCATION_NOT_GRANTED_VIEWS_CODE) {
+            buttonMultiPurpose.setVisibility(View.GONE);
+            listViewBleDevice.setVisibility(View.GONE);
+            textViewScanStatus.setVisibility(View.GONE);
+            textViewDeviceListTitle.setVisibility(View.GONE);
+            textViewTofDistanceTitle.setVisibility(View.GONE);
+            textViewTofDistance.setVisibility(View.GONE);
+            textViewDebug.setVisibility(View.GONE);
         }
     }
 

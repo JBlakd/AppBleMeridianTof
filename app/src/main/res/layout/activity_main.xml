@@ -13,6 +13,7 @@
         android:id="@+id/BleDeviceList"
         android:layout_width="354dp"
         android:layout_height="560dp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.482"
@@ -25,7 +26,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="28dp"
-        android:layout_marginBottom="120dp"
+        android:layout_marginBottom="140dp"
         android:text="TOF Distance (mm)"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -59,13 +60,14 @@
 
     <TextView
         android:id="@+id/textViewScanStatus"
-        android:layout_width="319dp"
-        android:layout_height="24dp"
-        android:layout_marginBottom="72dp"
+        android:layout_width="380dp"
+        android:layout_height="39dp"
+        android:layout_marginBottom="68dp"
         android:gravity="center"
         android:text="Scan Ready"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.483"
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
@@ -81,12 +83,14 @@
 
     <TextView
         android:id="@+id/textViewDebug"
-        android:layout_width="113dp"
-        android:layout_height="52dp"
-        android:layout_marginStart="4dp"
-        android:layout_marginBottom="12dp"
+        android:layout_width="381dp"
+        android:layout_height="23dp"
+        android:layout_marginBottom="72dp"
+        android:gravity="center"
         android:text="Debug TextView"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
 
