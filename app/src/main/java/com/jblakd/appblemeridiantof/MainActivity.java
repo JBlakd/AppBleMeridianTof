@@ -52,11 +52,26 @@ public class MainActivity extends AppCompatActivity {
     private static final int END_FRAME_TYPE = 2;
     private int currentFrameType;
 
+    private static final int IMAGE_WIDTH_PIXELS = 62;
+    private static final int IMAGE_HEIGHT_PIXELS = 80;
+    private static final int IMAGE_TOTAL_PIXELS = IMAGE_WIDTH_PIXELS * IMAGE_HEIGHT_PIXELS;
+
     private boolean startFrameReceived;
     private static final int TOF_OUT_OF_RANGE = 0;
     private int tofDistance;
-//    private boolean endReached = true;
 
+    // The range of allowed temperatures. Temperatures outside this range will be saturated.
+    private int[] rangeCelsius = new int[] {20, 50};
+    // To be calculated later during runtime and stored here
+    private int[] rangeTenthKelvin;
+
+    // Array to store each pixel as normalised values between the temperature ranges.
+    private float[] imgArray = new float[IMAGE_TOTAL_PIXELS];
+
+    // Counter for how many 16 bit words i.e. pixels received over bluetooth so far. 
+    // One complete image should have IMAGE_TOTAL_PIXELS words
+    private int wordCount = 0;
+    
     Button buttonMultiPurpose;
     TextView textViewScanStatus;
     TextView textViewDeviceListTitle;
@@ -98,6 +113,8 @@ public class MainActivity extends AppCompatActivity {
         textViewTofDistanceTitle = findViewById(R.id.textViewTofDistanceTitle);
         textViewTofDistance = findViewById(R.id.textViewTofDistance);
         textViewDebug = findViewById(R.id.textViewDebug);
+
+        rangeTenthKelvin = new int[] {celsiusToTenthKelvin(rangeCelsius[0]), celsiusToTenthKelvin(rangeCelsius[1])};
 
         // Check Location Permission
         if (ActivityCompat.checkSelfPermission(getApplicationContext(),
@@ -274,18 +291,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-//        public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-//            switch (requestCode) {
-//                case LOCATION_REQUEST_CODE:
-//                    if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                        // Permission is granted. Do nothing.
-//                    } else {
-//
-//                    }
-//                    return;
-//            }
-//        }
-
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             if (!(characteristic.getUuid().equals(bluetoothGattCharacteristic.getUuid()))) {
@@ -315,26 +320,38 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if (currentFrameType == START_FRAME_TYPE) {
-//                if (!endReached) {
-                    // TODO: provide not end Reached feedback
-//                }
-//                endReached = false;
                 startFrameReceived = true;
                 tofDistance = getInt16(value, 2);
 //                System.out.println("tofDistance: " + tofDistance);
             }
 
+            if (currentFrameType == MIDDLE_FRAME_TYPE) {
+                // Load data into imgArray
+                for (int i = 0; i < value.length - 1; i += 2) {
+                    imgArray[wordCount] = normaliseRange(rangeTenthKelvin[0], rangeTenthKelvin[1], getInt16(value, i));
+                    wordCount++;
+                }
+            }
+
             // Just-before-end code
             if (currentFrameType == END_FRAME_TYPE) {
-//                endReached = true;
+                // Load data into imgArray
+                for (int i = 0; i < value.length - 3; i += 2) {
+                    imgArray[wordCount] = normaliseRange(rangeTenthKelvin[0], rangeTenthKelvin[1], getInt16(value, i));
+                    wordCount++;
+                }
 
                 // Draw and update data
                 if (middleFrameCount == 40) {
                     textViewTofDistance.setText(String.valueOf(tofDistance));
+                    System.out.println(wordCount + " wordCount received. " + imgArray.length + " items in imgArray.");
                 } else {
                     textViewDebug.setText("Did not receive all frames.");
                 }
-                // Clear variables
+
+                // TODO: Clear variables
+                wordCount = 0;
+                imgArray = new float[IMAGE_TOTAL_PIXELS];
             }
         }
     };
@@ -383,7 +400,21 @@ public class MainActivity extends AppCompatActivity {
         return result;
     }
 
-//    public float normaliseRange()
+    public float normaliseRange(int xMin, int xMax, int xVal) {
+        return (xVal - xMin) / (xMax - xMin);
+    }
+
+    public float denormaliseRange(float xMin, float xMax, float norm) {
+        return norm*(xMax - xMin) + xMin;
+    }
+
+    public int celsiusToTenthKelvin(int celsius) {
+        return (10*celsius + 2731);
+    }
+
+    public float tenthKelvinToCelsius(int tenthKelvin) {
+        return (float) (( (float) tenthKelvin / 10) - 273.1);
+    }
 
     // Toast message function
     private void showToast(String msg) {
