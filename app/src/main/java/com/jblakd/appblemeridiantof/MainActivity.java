@@ -20,13 +20,16 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -67,17 +70,23 @@ public class MainActivity extends AppCompatActivity {
 
     // Array to store each pixel as normalised values between the temperature ranges.
     private float[] imgArray = new float[IMAGE_TOTAL_PIXELS];
+    // Array to store each pixel as 32-bit color ints
+    private int[] imgArrayColorInts = new int[IMAGE_TOTAL_PIXELS];
+    // Arrays to store the pre-rendered 32-bit color ints.
+    private int[] rgbColorsArray;
+    private Bitmap imgBitmap;
 
-    // Counter for how many 16 bit words i.e. pixels received over bluetooth so far. 
+    // Counter for how many 16 bit words i.e. pixels received over bluetooth so far.
     // One complete image should have IMAGE_TOTAL_PIXELS words
     private int wordCount = 0;
-    
+
     Button buttonMultiPurpose;
     TextView textViewScanStatus;
     TextView textViewDeviceListTitle;
     TextView textViewTofDistanceTitle;
     TextView textViewTofDistance;
     TextView textViewDebug;
+    ImageView imageViewThermal;
 
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
@@ -113,8 +122,16 @@ public class MainActivity extends AppCompatActivity {
         textViewTofDistanceTitle = findViewById(R.id.textViewTofDistanceTitle);
         textViewTofDistance = findViewById(R.id.textViewTofDistance);
         textViewDebug = findViewById(R.id.textViewDebug);
+        imageViewThermal = findViewById(R.id.imageViewThermal);
 
         rangeTenthKelvin = new int[] {celsiusToTenthKelvin(rangeCelsius[0]), celsiusToTenthKelvin(rangeCelsius[1])};
+        // Pre-rendering RGB values into color ints so Color.rgb() doesn't have to be called whenever a pixel needs rendering
+        rgbColorsArray = new int[] {Color.rgb(255,2,240), Color.rgb(255,0,208), Color.rgb(255,0,144),
+                Color.rgb(255,0,80), Color.rgb(255,0,16), Color.rgb(255,30,0), Color.rgb(255,70,0),
+                Color.rgb(255,110,0), Color.rgb(255,150,0), Color.rgb(255,190,0), Color.rgb(255,230,0),
+                Color.rgb(215,255,0), Color.rgb(62,255,0), Color.rgb(0,255,92), Color.rgb(0,255,131),
+                Color.rgb(0,255,244), Color.rgb(0,180,255), Color.rgb(0,116,255), Color.rgb(0,50,255),
+                Color.rgb(0,0,255)};
 
         // Check Location Permission
         if (ActivityCompat.checkSelfPermission(getApplicationContext(),
@@ -337,13 +354,29 @@ public class MainActivity extends AppCompatActivity {
             if (currentFrameType == END_FRAME_TYPE) {
                 // Load data into imgArray
                 for (int i = 0; i < value.length - 3; i += 2) {
-                    imgArray[wordCount] = normaliseRange(rangeTenthKelvin[0], rangeTenthKelvin[1], getInt16(value, i));
+                    int int16ValueAti = getInt16(value, i);
+                    imgArray[wordCount] = normaliseRange(rangeTenthKelvin[0], rangeTenthKelvin[1], int16ValueAti);
                     wordCount++;
                 }
 
                 // Draw and update data
                 if (middleFrameCount == 40) {
+                    // Update and display TOF distance data
                     textViewTofDistance.setText(String.valueOf(tofDistance));
+
+                    // TODO: draw(). Figure out how a 1D array gets turned into a bitmap
+                    imgArrayColorInts = imgArrayToColours(imgArray);
+                    // Alas, the height is actually the width. Now we need to rotate the image clockwise by 90 degrees.
+                    imgBitmap = Bitmap.createBitmap(imgArrayColorInts, IMAGE_HEIGHT_PIXELS, IMAGE_WIDTH_PIXELS, Bitmap.Config.ARGB_8888);
+                    imgBitmap = rotateBitmap(imgBitmap, -90);
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            imageViewThermal.setImageBitmap(imgBitmap);
+                        }
+                    });
+
                     System.out.println(wordCount + " wordCount received. " + imgArray.length + " items in imgArray.");
                 } else {
                     textViewDebug.setText("Did not receive all frames.");
@@ -363,13 +396,13 @@ public class MainActivity extends AppCompatActivity {
             textViewTofDistanceTitle.setVisibility(View.GONE);
             textViewTofDistance.setVisibility(View.GONE);
             textViewDebug.setVisibility(View.GONE);
+            imageViewThermal.setVisibility(View.GONE);
 
             listViewBleDevice.setVisibility(View.VISIBLE);
             textViewScanStatus.setVisibility(View.VISIBLE);
             textViewDeviceListTitle.setVisibility(View.VISIBLE);
 
             buttonMultiPurpose.setText("Start/stop scan");
-//            setTitle("Please connect to N_Meridian");
         } else if (currentViewsCode == DEVICE_CONNECTED_VIEWS_CODE) {
             listViewBleDevice.setVisibility(View.GONE);
             textViewScanStatus.setVisibility(View.GONE);
@@ -378,10 +411,11 @@ public class MainActivity extends AppCompatActivity {
             textViewTofDistanceTitle.setVisibility(View.VISIBLE);
             textViewTofDistance.setVisibility(View.VISIBLE);
             textViewDebug.setVisibility(View.VISIBLE);
+            imageViewThermal.setVisibility(View.VISIBLE);
 
             buttonMultiPurpose.setText("Disconnect from N_Meridian");
-//            setTitle("Connected to: N_Meridian");
         } else if (currentViewsCode == LOCATION_NOT_GRANTED_VIEWS_CODE) {
+            //Everything should be GONE
             buttonMultiPurpose.setVisibility(View.GONE);
             listViewBleDevice.setVisibility(View.GONE);
             textViewScanStatus.setVisibility(View.GONE);
@@ -389,6 +423,7 @@ public class MainActivity extends AppCompatActivity {
             textViewTofDistanceTitle.setVisibility(View.GONE);
             textViewTofDistance.setVisibility(View.GONE);
             textViewDebug.setVisibility(View.GONE);
+            imageViewThermal.setVisibility(View.GONE);
         }
     }
 
@@ -401,7 +436,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public float normaliseRange(int xMin, int xMax, int xVal) {
-        return (xVal - xMin) / (xMax - xMin);
+        float result = ((float) xVal - (float) xMin) / ((float) xMax - (float) xMin);
+        return result;
     }
 
     public float denormaliseRange(float xMin, float xMax, float norm) {
@@ -414,6 +450,68 @@ public class MainActivity extends AppCompatActivity {
 
     public float tenthKelvinToCelsius(int tenthKelvin) {
         return (float) (( (float) tenthKelvin / 10) - 273.1);
+    }
+
+    public int[] imgArrayToColours(float imgArrayInput[]) {
+        if (imgArrayInput.length != IMAGE_TOTAL_PIXELS) {
+            System.err.println("imgArrayToColours() error: imgArray not complete.");
+            return null;
+        }
+
+        int result[] = new int[IMAGE_TOTAL_PIXELS];
+
+        for (int i = 0; i < IMAGE_TOTAL_PIXELS; i++) {
+            if (imgArrayInput[i] > 0.95) {
+                result[i] = rgbColorsArray[0];
+            } else if (imgArrayInput[i] > 0.90) {
+                result[i] = rgbColorsArray[1];
+            } else if (imgArrayInput[i] > 0.85) {
+                result[i] = rgbColorsArray[2];
+            } else if (imgArrayInput[i] > 0.80) {
+                result[i] = rgbColorsArray[3];
+            } else if (imgArrayInput[i] > 0.75) {
+                result[i] = rgbColorsArray[4];
+            } else if (imgArrayInput[i] > 0.70) {
+                result[i] = rgbColorsArray[5];
+            } else if (imgArrayInput[i] > 0.65) {
+                result[i] = rgbColorsArray[6];
+            } else if (imgArrayInput[i] > 0.60) {
+                result[i] = rgbColorsArray[7];
+            } else if (imgArrayInput[i] > 0.55) {
+                result[i] = rgbColorsArray[8];
+            } else if (imgArrayInput[i] > 0.50) {
+                result[i] = rgbColorsArray[9];
+            } else if (imgArrayInput[i] > 0.45) {
+                result[i] = rgbColorsArray[10];
+            } else if (imgArrayInput[i] > 0.40) {
+                result[i] = rgbColorsArray[11];
+            } else if (imgArrayInput[i] > 0.35) {
+                result[i] = rgbColorsArray[12];
+            } else if (imgArrayInput[i] > 0.30) {
+                result[i] = rgbColorsArray[13];
+            } else if (imgArrayInput[i] > 0.25) {
+                result[i] = rgbColorsArray[14];
+            } else if (imgArrayInput[i] > 0.20) {
+                result[i] = rgbColorsArray[15];
+            } else if (imgArrayInput[i] > 0.15) {
+                result[i] = rgbColorsArray[16];
+            } else if (imgArrayInput[i] > 0.10) {
+                result[i] = rgbColorsArray[17];
+            } else if (imgArrayInput[i] > 0.05) {
+                result[i] = rgbColorsArray[18];
+            } else {
+                result[i] = rgbColorsArray[19];
+            }
+        }
+
+        return result;
+    }
+
+    public static Bitmap rotateBitmap(Bitmap source, float angle)
+    {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
 
     // Toast message function
