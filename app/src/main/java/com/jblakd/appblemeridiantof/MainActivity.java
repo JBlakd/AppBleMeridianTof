@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int IMAGE_WIDTH_PIXELS = 80;
     private static final int IMAGE_HEIGHT_PIXELS = 62;
     private static final int IMAGE_TOTAL_PIXELS = IMAGE_WIDTH_PIXELS * IMAGE_HEIGHT_PIXELS;
+    private static final int IMAGE_SCALE_FACTOR = 6;
 
     private boolean startFrameReceived;
     private static final int TOF_OUT_OF_RANGE = 0;
@@ -82,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
     // One complete image should have IMAGE_TOTAL_PIXELS words
     private int wordCount = 0;
 
-    private int testIndex = 0;
+    private int testIndex = 200;
 
     Button buttonMultiPurpose;
     TextView textViewScanStatus;
@@ -90,6 +91,8 @@ public class MainActivity extends AppCompatActivity {
     TextView textViewTofDistanceTitle;
     TextView textViewTofDistance;
     TextView textViewDebug;
+    TextView textViewHighestTempTitle;
+    TextView textViewHighestTemp;
     ImageView imageViewThermal;
     Canvas canvas;
     Paint paint = new Paint();
@@ -129,6 +132,8 @@ public class MainActivity extends AppCompatActivity {
         textViewTofDistanceTitle = findViewById(R.id.textViewTofDistanceTitle);
         textViewTofDistance = findViewById(R.id.textViewTofDistance);
         textViewDebug = findViewById(R.id.textViewDebug);
+        textViewHighestTempTitle = findViewById(R.id.textViewHighestTempTitle);
+        textViewHighestTemp = findViewById(R.id.textViewHighestTemp);
         imageViewThermal = findViewById(R.id.imageViewThermal);
 
         rangeTenthKelvin = new int[] {celsiusToTenthKelvin(rangeCelsius[0]), celsiusToTenthKelvin(rangeCelsius[1])};
@@ -377,12 +382,14 @@ public class MainActivity extends AppCompatActivity {
 
 //                    imgArray[testIndex] = (float) 1.0;
 //                    testIndex += 10;
-                    
+
                     imgArrayColorInts = imgArrayToColours(imgArray);
                     // Alas, the height is actually the width. Now we need to rotate the image clockwise by 90 degrees.
                     imgBitmap = Bitmap.createBitmap(imgArrayColorInts, IMAGE_WIDTH_PIXELS, IMAGE_HEIGHT_PIXELS, Bitmap.Config.ARGB_8888);
 
-                    Bitmap mutableBitmap = rotateBitmap(imgBitmap, -90);
+                    imgBitmap = rotateBitmap(imgBitmap, -90);
+                    Bitmap mutableBitmap = Bitmap.createScaledBitmap(imgBitmap,
+                            IMAGE_HEIGHT_PIXELS*IMAGE_SCALE_FACTOR, IMAGE_WIDTH_PIXELS*IMAGE_SCALE_FACTOR, false);
 //                    Bitmap mutableBitmap = imgBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
                     // Associate the Canvas object with the bitmap so that drawing on the canvas draws on the bitmap
@@ -390,15 +397,22 @@ public class MainActivity extends AppCompatActivity {
 
                     paint.setColor(Color.rgb(0,0,0));
                     paint.setStyle(Paint.Style.STROKE);
-
+                    paint.setFilterBitmap(false);
 //                    int[] testIndexCoordinate = indexToCoordinates(IMAGE_WIDTH_PIXELS, IMAGE_HEIGHT_PIXELS, testIndex);
 //                    System.out.println(testIndex + " becomes [" + testIndexCoordinate[0] + ", " + testIndexCoordinate[1] + "]");
 //                    canvas.drawCircle(testIndexCoordinate[0], testIndexCoordinate[1], 4, paint);
 //                    testIndex += 10;
+
                     int highestElementIndex = findHighestElementIndex(imgArray);
+                    float highestTemperatureCelsius = denormaliseRange(rangeCelsius[0], rangeCelsius[1], imgArray[highestElementIndex]);
+                    textViewHighestTemp.setText(String.valueOf(highestTemperatureCelsius) + "°C");
                     int[] highestElementCoordinate = indexToCoordinates(IMAGE_WIDTH_PIXELS, IMAGE_HEIGHT_PIXELS, highestElementIndex);
                     System.out.println(highestElementIndex + " becomes [" + highestElementCoordinate[0] + ", " + highestElementCoordinate[1] + "]");
-                    canvas.drawCircle(highestElementCoordinate[0], highestElementCoordinate[1], 4, paint);
+//                    canvas.drawCircle(highestElementCoordinate[0]*IMAGE_SCALE_FACTOR,
+//                            highestElementCoordinate[1]*IMAGE_SCALE_FACTOR, 3*IMAGE_SCALE_FACTOR, paint);
+                    drawCrosshair(highestElementCoordinate[0], highestElementCoordinate[1], 1, canvas, paint);
+//                    canvas.drawCircle(1,1,4,paint);
+
 
                     runOnUiThread(new Runnable() {
                         @Override
@@ -429,6 +443,8 @@ public class MainActivity extends AppCompatActivity {
             textViewTofDistance.setVisibility(View.GONE);
             textViewDebug.setVisibility(View.GONE);
             imageViewThermal.setVisibility(View.GONE);
+            textViewHighestTempTitle.setVisibility(View.GONE);
+            textViewHighestTemp.setVisibility(View.GONE);
 
             listViewBleDevice.setVisibility(View.VISIBLE);
             textViewScanStatus.setVisibility(View.VISIBLE);
@@ -442,6 +458,8 @@ public class MainActivity extends AppCompatActivity {
 
             textViewTofDistanceTitle.setVisibility(View.VISIBLE);
             textViewTofDistance.setVisibility(View.VISIBLE);
+            textViewHighestTempTitle.setVisibility(View.VISIBLE);
+            textViewHighestTemp.setVisibility(View.VISIBLE);
             textViewDebug.setVisibility(View.VISIBLE);
             imageViewThermal.setVisibility(View.VISIBLE);
 
@@ -569,6 +587,14 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return result;
+    }
+
+    public void drawCrosshair(float cx, float cy, float radius, Canvas inputCanvas, Paint inputPaint) {
+        float cxScaled = (float) ((cx * IMAGE_SCALE_FACTOR) + (0.5 * IMAGE_SCALE_FACTOR));
+        float cyScaled = (float) ((cy * IMAGE_SCALE_FACTOR) - (0.5 * IMAGE_SCALE_FACTOR));
+        float radiusScaled = radius * IMAGE_SCALE_FACTOR;
+
+        inputCanvas.drawCircle(cxScaled, cyScaled, radiusScaled, inputPaint);
     }
 
     // Toast message function
