@@ -21,8 +21,10 @@ import android.bluetooth.le.ScanResult;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
@@ -55,8 +57,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int END_FRAME_TYPE = 2;
     private int currentFrameType;
 
-    private static final int IMAGE_WIDTH_PIXELS = 62;
-    private static final int IMAGE_HEIGHT_PIXELS = 80;
+    private static final int IMAGE_WIDTH_PIXELS = 80;
+    private static final int IMAGE_HEIGHT_PIXELS = 62;
     private static final int IMAGE_TOTAL_PIXELS = IMAGE_WIDTH_PIXELS * IMAGE_HEIGHT_PIXELS;
 
     private boolean startFrameReceived;
@@ -80,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
     // One complete image should have IMAGE_TOTAL_PIXELS words
     private int wordCount = 0;
 
+    private int testIndex = 0;
+
     Button buttonMultiPurpose;
     TextView textViewScanStatus;
     TextView textViewDeviceListTitle;
@@ -87,6 +91,8 @@ public class MainActivity extends AppCompatActivity {
     TextView textViewTofDistance;
     TextView textViewDebug;
     ImageView imageViewThermal;
+    Canvas canvas;
+    Paint paint = new Paint();
 
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
@@ -112,6 +118,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // TODO: Scale for all device screen sizes programmatically using percentages
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -322,7 +329,6 @@ public class MainActivity extends AppCompatActivity {
                 if (String.format("%x", value[1]).equals("7b")) {
                     System.out.println("startFrame");
                     currentFrameType = START_FRAME_TYPE;
-                    middleFrameCount = 0;
                 }
             } else if (String.format("%x", value[value.length-1]).equals("44")) {
                 if (String.format("%x", value[value.length-2]).equals("7d")) {
@@ -339,7 +345,12 @@ public class MainActivity extends AppCompatActivity {
             if (currentFrameType == START_FRAME_TYPE) {
                 startFrameReceived = true;
                 tofDistance = getInt16(value, 2);
-//                System.out.println("tofDistance: " + tofDistance);
+
+                // Clear variables in both startFrame and endFrame just to be safe
+                // In case either the startFrame or endFrame is missed.
+                wordCount = 0;
+                imgArray = new float[IMAGE_TOTAL_PIXELS];
+                middleFrameCount = 0;
             }
 
             if (currentFrameType == MIDDLE_FRAME_TYPE) {
@@ -360,20 +371,39 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 // Draw and update data
-                if (middleFrameCount == 40) {
+                if (middleFrameCount == 40 && wordCount == IMAGE_TOTAL_PIXELS) {
                     // Update and display TOF distance data
                     textViewTofDistance.setText(String.valueOf(tofDistance));
 
-                    // TODO: draw(). Figure out how a 1D array gets turned into a bitmap
+//                    imgArray[testIndex] = (float) 1.0;
+//                    testIndex += 10;
+                    
                     imgArrayColorInts = imgArrayToColours(imgArray);
                     // Alas, the height is actually the width. Now we need to rotate the image clockwise by 90 degrees.
-                    imgBitmap = Bitmap.createBitmap(imgArrayColorInts, IMAGE_HEIGHT_PIXELS, IMAGE_WIDTH_PIXELS, Bitmap.Config.ARGB_8888);
-                    imgBitmap = rotateBitmap(imgBitmap, -90);
+                    imgBitmap = Bitmap.createBitmap(imgArrayColorInts, IMAGE_WIDTH_PIXELS, IMAGE_HEIGHT_PIXELS, Bitmap.Config.ARGB_8888);
+
+                    Bitmap mutableBitmap = rotateBitmap(imgBitmap, -90);
+//                    Bitmap mutableBitmap = imgBitmap.copy(Bitmap.Config.ARGB_8888, true);
+
+                    // Associate the Canvas object with the bitmap so that drawing on the canvas draws on the bitmap
+                    canvas = new Canvas(mutableBitmap);
+
+                    paint.setColor(Color.rgb(0,0,0));
+                    paint.setStyle(Paint.Style.STROKE);
+
+//                    int[] testIndexCoordinate = indexToCoordinates(IMAGE_WIDTH_PIXELS, IMAGE_HEIGHT_PIXELS, testIndex);
+//                    System.out.println(testIndex + " becomes [" + testIndexCoordinate[0] + ", " + testIndexCoordinate[1] + "]");
+//                    canvas.drawCircle(testIndexCoordinate[0], testIndexCoordinate[1], 4, paint);
+//                    testIndex += 10;
+                    int highestElementIndex = findHighestElementIndex(imgArray);
+                    int[] highestElementCoordinate = indexToCoordinates(IMAGE_WIDTH_PIXELS, IMAGE_HEIGHT_PIXELS, highestElementIndex);
+                    System.out.println(highestElementIndex + " becomes [" + highestElementCoordinate[0] + ", " + highestElementCoordinate[1] + "]");
+                    canvas.drawCircle(highestElementCoordinate[0], highestElementCoordinate[1], 4, paint);
 
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            imageViewThermal.setImageBitmap(imgBitmap);
+                            imageViewThermal.setImageBitmap(mutableBitmap);
                         }
                     });
 
@@ -382,9 +412,11 @@ public class MainActivity extends AppCompatActivity {
                     textViewDebug.setText("Did not receive all frames.");
                 }
 
-                // TODO: Clear variables
+                // Clear variables in both startFrame and endFrame just to be safe
+                // In case either the startFrame or endFrame is missed.
                 wordCount = 0;
                 imgArray = new float[IMAGE_TOTAL_PIXELS];
+                middleFrameCount = 0;
             }
         }
     };
@@ -512,6 +544,31 @@ public class MainActivity extends AppCompatActivity {
         Matrix matrix = new Matrix();
         matrix.postRotate(angle);
         return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
+    }
+
+    // In this app the thermal image bitmap information is stored in a 1D array
+    // This function returns the XY coordinate of a particular pixel given its index in the 1D array
+    public int[] indexToCoordinates(int width, int height, int index) {
+       int[] result = new int[2];
+
+//       result[0] = index % width; // This is correct for an unrotated bitmap
+//       result[1] = index / width; // This is correct for an unrotated bitmap
+
+        result[1] = width - (index % width);    // This is correct for a rotated bitmap
+        result[0] = index / width;              // This is correct for a rotated bitmap
+       return result;
+    }
+
+    public int findHighestElementIndex(float[] array) {
+        int result = 0;
+        float highest = 0;
+        for (int i = 0; i < array.length; i++) {
+            if (array[i] > highest) {
+                highest = array[i];
+                result = i;
+            }
+        }
+        return result;
     }
 
     // Toast message function
