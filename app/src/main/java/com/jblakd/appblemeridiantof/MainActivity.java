@@ -37,6 +37,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -93,6 +94,8 @@ public class MainActivity extends AppCompatActivity {
     TextView textViewDebug;
     TextView textViewHighestTempTitle;
     TextView textViewHighestTemp;
+    TextView textViewMedianTempTitle;
+    TextView textViewMedianTemp;
     ImageView imageViewThermal;
     Canvas canvas;
     Paint paint = new Paint();
@@ -134,6 +137,8 @@ public class MainActivity extends AppCompatActivity {
         textViewDebug = findViewById(R.id.textViewDebug);
         textViewHighestTempTitle = findViewById(R.id.textViewHighestTempTitle);
         textViewHighestTemp = findViewById(R.id.textViewHighestTemp);
+        textViewMedianTempTitle = findViewById(R.id.textViewMedianTempTitle);
+        textViewMedianTemp = findViewById(R.id.textViewMedianTemp);
         imageViewThermal = findViewById(R.id.imageViewThermal);
 
         rangeTenthKelvin = new int[] {celsiusToTenthKelvin(rangeCelsius[0]), celsiusToTenthKelvin(rangeCelsius[1])};
@@ -406,14 +411,22 @@ public class MainActivity extends AppCompatActivity {
                     int highestElementIndex = findHighestElementIndex(imgArray);
                     float highestTemperatureCelsius = denormaliseRange(rangeCelsius[0], rangeCelsius[1], imgArray[highestElementIndex]);
                     textViewHighestTemp.setText(String.valueOf(highestTemperatureCelsius) + "°C");
-                    int[] highestElementCoordinate = indexToCoordinates(IMAGE_WIDTH_PIXELS, IMAGE_HEIGHT_PIXELS, highestElementIndex);
-                    System.out.println(highestElementIndex + " becomes [" + highestElementCoordinate[0] + ", " + highestElementCoordinate[1] + "]");
-//                    canvas.drawCircle(highestElementCoordinate[0]*IMAGE_SCALE_FACTOR,
-//                            highestElementCoordinate[1]*IMAGE_SCALE_FACTOR, 3*IMAGE_SCALE_FACTOR, paint);
-                    drawCrosshair(highestElementCoordinate[0], highestElementCoordinate[1], 1, canvas, paint);
-//                    canvas.drawCircle(1,1,4,paint);
+                    // Put the imgArray indices of the pixels which are in the vicinity of the hottest pixel
+                    int[] pixelGroupIndicesAroundHottest = getPixelGroupAroundIndex(highestElementIndex);
+                    // Declare an array of normalised temperature values for these pixels
+                    float[] pixelGroupAroundHottest = new float[pixelGroupIndicesAroundHottest.length];
+                    // Draw a crosshair for each pixel in the vicinity of the hottest pixel
+                    // While we're at it, populate the pixelGroupAroundHottest array
+                    for (int i = 0; i < pixelGroupIndicesAroundHottest.length; i++) {
+                        int[] pixelCoordinates = indexToCoordinates(IMAGE_WIDTH_PIXELS, IMAGE_HEIGHT_PIXELS, pixelGroupIndicesAroundHottest[i]);
+                        drawCrosshair(pixelCoordinates[0], pixelCoordinates[1], (float)0.5, canvas, paint);
+                        pixelGroupAroundHottest[i] = imgArray[pixelGroupIndicesAroundHottest[i]];
+                    }
+                    float groupMedianTempNormalised = getMedian(pixelGroupAroundHottest);
+                    float groupMedianTempCelsius = denormaliseRange(rangeCelsius[0], rangeCelsius[1], groupMedianTempNormalised);
+                    textViewMedianTemp.setText(String.valueOf(groupMedianTempCelsius) + "°C");
 
-
+                    // Draw the image
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -445,6 +458,8 @@ public class MainActivity extends AppCompatActivity {
             imageViewThermal.setVisibility(View.GONE);
             textViewHighestTempTitle.setVisibility(View.GONE);
             textViewHighestTemp.setVisibility(View.GONE);
+            textViewMedianTempTitle.setVisibility(View.GONE);
+            textViewMedianTemp.setVisibility(View.GONE);
 
             listViewBleDevice.setVisibility(View.VISIBLE);
             textViewScanStatus.setVisibility(View.VISIBLE);
@@ -460,6 +475,8 @@ public class MainActivity extends AppCompatActivity {
             textViewTofDistance.setVisibility(View.VISIBLE);
             textViewHighestTempTitle.setVisibility(View.VISIBLE);
             textViewHighestTemp.setVisibility(View.VISIBLE);
+            textViewMedianTempTitle.setVisibility(View.VISIBLE);
+            textViewMedianTemp.setVisibility(View.VISIBLE);
             textViewDebug.setVisibility(View.VISIBLE);
             imageViewThermal.setVisibility(View.VISIBLE);
 
@@ -577,6 +594,38 @@ public class MainActivity extends AppCompatActivity {
        return result;
     }
 
+    // Argument is a pixel represented by an imgArray index
+    // Returns an array of imgArray indices in the vicinity of the argument
+    public int[] getPixelGroupAroundIndex(int inputIndex) {
+        int[] result = new int[25];
+        result[0] = inputIndex - 2*IMAGE_WIDTH_PIXELS;
+        result[1] = inputIndex - 2*IMAGE_WIDTH_PIXELS - 2;
+        result[2] = inputIndex - 2*IMAGE_WIDTH_PIXELS - 1;
+        result[3] = inputIndex - 2*IMAGE_WIDTH_PIXELS + 1;
+        result[4] = inputIndex - 2*IMAGE_WIDTH_PIXELS + 2;
+        result[5] = inputIndex - IMAGE_WIDTH_PIXELS;
+        result[6] = inputIndex - IMAGE_WIDTH_PIXELS - 2;
+        result[7] = inputIndex - IMAGE_WIDTH_PIXELS - 1;
+        result[8] = inputIndex - IMAGE_WIDTH_PIXELS + 1;
+        result[9] = inputIndex - IMAGE_WIDTH_PIXELS + 2;
+        result[10] = inputIndex;
+        result[11] = inputIndex - 2;
+        result[12] = inputIndex - 1;
+        result[13] = inputIndex + 1;
+        result[14] = inputIndex + 2;
+        result[15] = inputIndex + IMAGE_WIDTH_PIXELS;
+        result[16] = inputIndex + IMAGE_WIDTH_PIXELS - 2;
+        result[17] = inputIndex + IMAGE_WIDTH_PIXELS - 1;
+        result[18] = inputIndex + IMAGE_WIDTH_PIXELS + 1;
+        result[19] = inputIndex + IMAGE_WIDTH_PIXELS + 2;
+        result[20] = inputIndex + 2*IMAGE_WIDTH_PIXELS;
+        result[21] = inputIndex + 2*IMAGE_WIDTH_PIXELS - 2;
+        result[22] = inputIndex + 2*IMAGE_WIDTH_PIXELS - 1;
+        result[23] = inputIndex + 2*IMAGE_WIDTH_PIXELS + 1;
+        result[24] = inputIndex + 2*IMAGE_WIDTH_PIXELS + 2;
+        return result;
+    }
+
     public int findHighestElementIndex(float[] array) {
         int result = 0;
         float highest = 0;
@@ -595,6 +644,16 @@ public class MainActivity extends AppCompatActivity {
         float radiusScaled = radius * IMAGE_SCALE_FACTOR;
 
         inputCanvas.drawCircle(cxScaled, cyScaled, radiusScaled, inputPaint);
+    }
+
+    public float getMedian(float[] inputArray) {
+        float[] array = inputArray;
+        Arrays.sort(array);
+        if (array.length % 2 != 0) {
+            return array[array.length/2];
+        } else {
+            return (array[array.length/2] + array[array.length/2 - 1])/2;
+        }
     }
 
     // Toast message function

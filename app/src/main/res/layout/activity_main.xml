@@ -9,7 +9,17 @@
     android:gravity="center_horizontal"
     tools:context=".MainActivity">
 
-        <ListView
+    <TextView
+        android:id="@+id/textViewMedianTempTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="24dp"
+        android:text="Median Temp (within cursor)"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textViewHighestTemp" />
+
+    <ListView
         android:id="@+id/BleDeviceList"
         android:layout_width="354dp"
         android:layout_height="560dp"
@@ -26,17 +36,18 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:layout_marginBottom="140dp"
+        android:layout_marginTop="4dp"
         android:text="TOF Distance (mm)"
         android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imageViewThermal" />
 
     <TextView
         android:id="@+id/textViewTofDistance"
         android:layout_width="121dp"
         android:layout_height="43dp"
         android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp"
         android:gravity="center"
         android:text=""
         android:textSize="20sp"
@@ -48,7 +59,8 @@
         android:id="@+id/textViewHighestTemp"
         android:layout_width="192dp"
         android:layout_height="43dp"
-        android:layout_marginEnd="32dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="20dp"
         android:gravity="center"
         android:text=""
         android:textSize="20sp"
@@ -57,22 +69,34 @@
         app:layout_constraintTop_toBottomOf="@+id/textViewHighestTempTitle" />
 
     <TextView
+        android:id="@+id/textViewMedianTemp"
+        android:layout_width="192dp"
+        android:layout_height="43dp"
+        android:layout_marginEnd="20dp"
+        android:gravity="center"
+        android:text=""
+        android:textSize="20sp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textViewMedianTempTitle" />
+
+    <TextView
         android:id="@+id/textViewHighestTempTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="48dp"
-        android:layout_marginBottom="140dp"
-        android:text="Highest Temp (cursor location)"
+        android:layout_marginStart="68dp"
+        android:layout_marginTop="4dp"
+        android:text="Highest Temp (cursor centre)"
         android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/textViewTofDistanceTitle" />
+        app:layout_constraintStart_toEndOf="@+id/textViewTofDistanceTitle"
+        app:layout_constraintTop_toBottomOf="@+id/imageViewThermal" />
 
     <Button
         android:id="@+id/buttonMultiPurpose"
         style="@style/Widget.AppCompat.Button.Colored"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="4dp"
         android:backgroundTint="@color/button_background_color"
         android:paddingHorizontal="15dp"
         android:text="Start/Stop Scan"
@@ -83,9 +107,9 @@
 
     <TextView
         android:id="@+id/textViewScanStatus"
-        android:layout_width="380dp"
-        android:layout_height="39dp"
-        android:layout_marginBottom="68dp"
+        android:layout_width="384dp"
+        android:layout_height="34dp"
+        android:layout_marginBottom="52dp"
         android:gravity="center"
         android:text="Scan Ready"
         app:layout_constraintBottom_toBottomOf="parent"
