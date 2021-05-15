@@ -25,6 +25,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
@@ -68,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
     private int tofDistance;
 
     // The range of allowed temperatures. Temperatures outside this range will be saturated.
-    private int[] rangeCelsius = new int[] {20, 50};
+    private int[] rangeCelsius = new int[] {25, 45};
     // To be calculated later during runtime and stored here
     private int[] rangeTenthKelvin;
 
@@ -79,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
     // Arrays to store the pre-rendered 32-bit color ints.
     private int[] rgbColorsArray;
     private Bitmap imgBitmap;
+    private Bitmap tempScaleBitmap;
 
     // Counter for how many 16 bit words i.e. pixels received over bluetooth so far.
     // One complete image should have IMAGE_TOTAL_PIXELS words
@@ -97,8 +99,11 @@ public class MainActivity extends AppCompatActivity {
     TextView textViewMedianTempTitle;
     TextView textViewMedianTemp;
     ImageView imageViewThermal;
+    ImageView imageViewTempScale;
     Canvas canvas;
+    Canvas tempScaleCanvas;
     Paint paint = new Paint();
+    Paint tempScalePaint = new Paint();
 
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
@@ -140,6 +145,7 @@ public class MainActivity extends AppCompatActivity {
         textViewMedianTempTitle = findViewById(R.id.textViewMedianTempTitle);
         textViewMedianTemp = findViewById(R.id.textViewMedianTemp);
         imageViewThermal = findViewById(R.id.imageViewThermal);
+        imageViewTempScale = findViewById(R.id.imageViewTempScale);
 
         rangeTenthKelvin = new int[] {celsiusToTenthKelvin(rangeCelsius[0]), celsiusToTenthKelvin(rangeCelsius[1])};
         // Pre-rendering RGB values into color ints so Color.rgb() doesn't have to be called whenever a pixel needs rendering
@@ -382,6 +388,11 @@ public class MainActivity extends AppCompatActivity {
 
                 // Draw and update data
                 if (middleFrameCount == 40 && wordCount == IMAGE_TOTAL_PIXELS) {
+                    // Draw temperature scale
+                    tempScaleBitmap = Bitmap.createBitmap(imageViewTempScale.getWidth(), imageViewTempScale.getHeight(), Bitmap.Config.ARGB_8888);
+                    tempScaleCanvas = new Canvas(tempScaleBitmap);
+                    drawTempScaleToCanvas(tempScaleCanvas, tempScalePaint);
+
                     // Update and display TOF distance data
                     textViewTofDistance.setText(String.valueOf(tofDistance));
 
@@ -431,6 +442,7 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             imageViewThermal.setImageBitmap(mutableBitmap);
+                            imageViewTempScale.setImageBitmap(tempScaleBitmap);
                         }
                     });
 
@@ -456,6 +468,7 @@ public class MainActivity extends AppCompatActivity {
             textViewTofDistance.setVisibility(View.GONE);
             textViewDebug.setVisibility(View.GONE);
             imageViewThermal.setVisibility(View.GONE);
+            imageViewTempScale.setVisibility(View.GONE);
             textViewHighestTempTitle.setVisibility(View.GONE);
             textViewHighestTemp.setVisibility(View.GONE);
             textViewMedianTempTitle.setVisibility(View.GONE);
@@ -479,6 +492,7 @@ public class MainActivity extends AppCompatActivity {
             textViewMedianTemp.setVisibility(View.VISIBLE);
             textViewDebug.setVisibility(View.VISIBLE);
             imageViewThermal.setVisibility(View.VISIBLE);
+            imageViewTempScale.setVisibility(View.VISIBLE);
 
             buttonMultiPurpose.setText("Disconnect from N_Meridian");
         } else if (currentViewsCode == LOCATION_NOT_GRANTED_VIEWS_CODE) {
@@ -654,6 +668,30 @@ public class MainActivity extends AppCompatActivity {
         } else {
             return (array[array.length/2] + array[array.length/2 - 1])/2;
         }
+    }
+
+    public void drawTempScaleToCanvas(Canvas inputTempScaleCanvas, Paint inputTempScalePaint) {
+        int TEMP_SCALE_HEIGHT_UNIT = imageViewTempScale.getHeight() / (rgbColorsArray.length + 1);
+        float TEMP_INTERVAL_UNIT = (rangeCelsius[1] - rangeCelsius[0]) / (float) rgbColorsArray.length;
+        float CANVAS_WIDTH = imageViewTempScale.getWidth();
+        for (int i = 0; i < rgbColorsArray.length; i++) {
+            // Drawing the colours
+            inputTempScalePaint.setColor(rgbColorsArray[i]);
+            inputTempScaleCanvas.drawRect(new Rect(0, (i*TEMP_SCALE_HEIGHT_UNIT)+TEMP_SCALE_HEIGHT_UNIT/2,
+                            imageViewTempScale.getWidth()/2,
+                            ((i+1)*(TEMP_SCALE_HEIGHT_UNIT))+TEMP_SCALE_HEIGHT_UNIT/2), inputTempScalePaint);
+            // Drawing the temperature numbers
+            inputTempScalePaint.setColor(Color.rgb(0,0,0)); // Black
+            inputTempScalePaint.setTextAlign(Paint.Align.LEFT);
+            inputTempScalePaint.setTextSize(imageViewTempScale.getHeight()/40);
+            inputTempScaleCanvas.drawText(String.valueOf(rangeCelsius[1] - (i*TEMP_INTERVAL_UNIT)),
+                    (float)((CANVAS_WIDTH/2)+0.1*CANVAS_WIDTH),
+                    (float)((i*TEMP_SCALE_HEIGHT_UNIT)+(0.625)*TEMP_SCALE_HEIGHT_UNIT), inputTempScalePaint);
+        }
+        // Drawing the very last temperature number that the loop doesn't cover
+        inputTempScaleCanvas.drawText(String.valueOf((float) rangeCelsius[0]),
+                (float)((CANVAS_WIDTH/2)+0.1*CANVAS_WIDTH),
+                (float)((rgbColorsArray.length*TEMP_SCALE_HEIGHT_UNIT)+(0.625)*TEMP_SCALE_HEIGHT_UNIT), inputTempScalePaint);
     }
 
     // Toast message function
