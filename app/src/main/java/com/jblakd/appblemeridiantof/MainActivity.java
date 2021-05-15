@@ -98,6 +98,9 @@ public class MainActivity extends AppCompatActivity {
     TextView textViewHighestTemp;
     TextView textViewMedianTempTitle;
     TextView textViewMedianTemp;
+    TextView textViewBucketTempTitle;
+    TextView textViewBucketTemp;
+    TextView textViewBucketTooltip;
     ImageView imageViewThermal;
     ImageView imageViewTempScale;
     Canvas canvas;
@@ -146,6 +149,9 @@ public class MainActivity extends AppCompatActivity {
         textViewMedianTemp = findViewById(R.id.textViewMedianTemp);
         imageViewThermal = findViewById(R.id.imageViewThermal);
         imageViewTempScale = findViewById(R.id.imageViewTempScale);
+        textViewBucketTempTitle = findViewById(R.id.textViewBucketTempTitle);
+        textViewBucketTemp = findViewById(R.id.textViewBucketTemp);
+        textViewBucketTooltip = findViewById(R.id.textViewBucketTooltip);
 
         rangeTenthKelvin = new int[] {celsiusToTenthKelvin(rangeCelsius[0]), celsiusToTenthKelvin(rangeCelsius[1])};
         // Pre-rendering RGB values into color ints so Color.rgb() doesn't have to be called whenever a pixel needs rendering
@@ -437,6 +443,21 @@ public class MainActivity extends AppCompatActivity {
                     float groupMedianTempCelsius = denormaliseRange(rangeCelsius[0], rangeCelsius[1], groupMedianTempNormalised);
                     textViewMedianTemp.setText(String.valueOf(groupMedianTempCelsius) + "°C");
 
+                    // Bucketise imgArray
+                    ArrayList<Float>[] bucketisedImgArray = bucketiseImgArray(imgArray);
+                    int longestBucketLength = 0;
+                    int longestBucketIndex = 0;
+                    for (int i = 0; i < bucketisedImgArray.length; i++) {
+                        if (bucketisedImgArray[i].size() > longestBucketLength) {
+                            longestBucketLength = bucketisedImgArray[i].size();
+                            longestBucketIndex = i;
+                        }
+                    }
+                    float longestBucketMeanNormalised = getMean(bucketisedImgArray[longestBucketIndex]);
+                    float longestBucketMeanCelsius = denormaliseRange(rangeCelsius[0], rangeCelsius[1], longestBucketMeanNormalised);
+                    textViewBucketTemp.setText(String.valueOf(longestBucketMeanCelsius) + "°C");
+                    drawMostFrequentBucket(longestBucketIndex, tempScaleCanvas, tempScalePaint);
+
                     // Draw the image
                     runOnUiThread(new Runnable() {
                         @Override
@@ -446,7 +467,10 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
 
-                    System.out.println(wordCount + " wordCount received. " + imgArray.length + " items in imgArray.");
+                    System.out.println(wordCount + " wordCount received. " +
+                            imgArray.length + " items in imgArray." +
+                            "Longest bucket length " + longestBucketLength +
+                            " index " + longestBucketIndex + ".");
                 } else {
                     textViewDebug.setText("Did not receive all frames.");
                 }
@@ -473,6 +497,9 @@ public class MainActivity extends AppCompatActivity {
             textViewHighestTemp.setVisibility(View.GONE);
             textViewMedianTempTitle.setVisibility(View.GONE);
             textViewMedianTemp.setVisibility(View.GONE);
+            textViewBucketTempTitle.setVisibility(View.GONE);
+            textViewBucketTemp.setVisibility(View.GONE);
+            textViewBucketTooltip.setVisibility(View.GONE);
 
             listViewBleDevice.setVisibility(View.VISIBLE);
             textViewScanStatus.setVisibility(View.VISIBLE);
@@ -493,6 +520,9 @@ public class MainActivity extends AppCompatActivity {
             textViewDebug.setVisibility(View.VISIBLE);
             imageViewThermal.setVisibility(View.VISIBLE);
             imageViewTempScale.setVisibility(View.VISIBLE);
+            textViewBucketTempTitle.setVisibility(View.VISIBLE);
+            textViewBucketTemp.setVisibility(View.VISIBLE);
+            textViewBucketTooltip.setVisibility(View.VISIBLE);
 
             buttonMultiPurpose.setText("Disconnect from N_Meridian");
         } else if (currentViewsCode == LOCATION_NOT_GRANTED_VIEWS_CODE) {
@@ -588,6 +618,66 @@ public class MainActivity extends AppCompatActivity {
         return result;
     }
 
+    public ArrayList<Float>[] bucketiseImgArray(float imgArrayInput[]) {
+        if (imgArrayInput.length != IMAGE_TOTAL_PIXELS) {
+            System.err.println("bucketiseImgArray() error: imgArray not complete.");
+            return null;
+        }
+
+        // Initialising the array of 20 ArrayList, each ArrayList being a bucket
+        ArrayList<Float>[] result = new ArrayList[rgbColorsArray.length];
+        // Initialising each ArrayList in the array
+        for (int i = 0; i < result.length; i++) {
+            result[i] = new ArrayList<Float>();
+        }
+
+        for (int i = 0; i < IMAGE_TOTAL_PIXELS; i++) {
+            if (imgArrayInput[i] > 0.95) {
+                result[0].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.90) {
+                result[1].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.85) {
+                result[2].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.80) {
+                result[3].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.75) {
+                result[4].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.70) {
+                result[5].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.65) {
+                result[6].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.60) {
+                result[7].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.55) {
+                result[8].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.50) {
+                result[9].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.45) {
+                result[10].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.40) {
+                result[11].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.35) {
+                result[12].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.30) {
+                result[13].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.25) {
+                result[14].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.20) {
+                result[15].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.15) {
+                result[16].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.10) {
+                result[17].add(imgArrayInput[i]);
+            } else if (imgArrayInput[i] > 0.05) {
+                result[18].add(imgArrayInput[i]);
+            } else {
+                result[19].add(imgArrayInput[i]);
+            }
+        }
+
+        return result;
+    }
+
     public static Bitmap rotateBitmap(Bitmap source, float angle)
     {
         Matrix matrix = new Matrix();
@@ -670,12 +760,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public float getMean(ArrayList<Float> inputArrayList) {
+        float sum = 0;
+        for (int i = 0; i < inputArrayList.size(); i++) {
+            sum += inputArrayList.get(i);
+        }
+        return sum / inputArrayList.size();
+    }
+
     public void drawTempScaleToCanvas(Canvas inputTempScaleCanvas, Paint inputTempScalePaint) {
         int TEMP_SCALE_HEIGHT_UNIT = imageViewTempScale.getHeight() / (rgbColorsArray.length + 1);
         float TEMP_INTERVAL_UNIT = (rangeCelsius[1] - rangeCelsius[0]) / (float) rgbColorsArray.length;
         float CANVAS_WIDTH = imageViewTempScale.getWidth();
         for (int i = 0; i < rgbColorsArray.length; i++) {
             // Drawing the colours
+            inputTempScalePaint.setStyle(Paint.Style.FILL);
             inputTempScalePaint.setColor(rgbColorsArray[i]);
             inputTempScaleCanvas.drawRect(new Rect(0, (i*TEMP_SCALE_HEIGHT_UNIT)+TEMP_SCALE_HEIGHT_UNIT/2,
                             imageViewTempScale.getWidth()/2,
@@ -692,6 +791,21 @@ public class MainActivity extends AppCompatActivity {
         inputTempScaleCanvas.drawText(String.valueOf((float) rangeCelsius[0]),
                 (float)((CANVAS_WIDTH/2)+0.1*CANVAS_WIDTH),
                 (float)((rgbColorsArray.length*TEMP_SCALE_HEIGHT_UNIT)+(0.625)*TEMP_SCALE_HEIGHT_UNIT), inputTempScalePaint);
+    }
+
+    public void drawMostFrequentBucket(int mostFrequentBucketIndex, Canvas inputTempScaleCanvas, Paint inputTempScalePaint) {
+        int TEMP_SCALE_HEIGHT_UNIT = imageViewTempScale.getHeight() / (rgbColorsArray.length + 1);
+        float CANVAS_WIDTH = imageViewTempScale.getWidth();
+
+//        inputTempScaleCanvas.drawCircle(CANVAS_WIDTH/4,
+//                mostFrequentBucketIndex*TEMP_SCALE_HEIGHT_UNIT+TEMP_SCALE_HEIGHT_UNIT,
+//                5,
+//                inputTempScalePaint);
+        inputTempScalePaint.setStyle(Paint.Style.STROKE);
+        inputTempScalePaint.setStrokeWidth(3);
+        inputTempScaleCanvas.drawRect(new Rect(0, (mostFrequentBucketIndex*TEMP_SCALE_HEIGHT_UNIT)+TEMP_SCALE_HEIGHT_UNIT/2,
+                imageViewTempScale.getWidth()/2,
+                ((mostFrequentBucketIndex+1)*(TEMP_SCALE_HEIGHT_UNIT))+TEMP_SCALE_HEIGHT_UNIT/2), inputTempScalePaint);
     }
 
     // Toast message function
