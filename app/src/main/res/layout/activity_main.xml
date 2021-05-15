@@ -13,19 +13,23 @@
         android:id="@+id/textViewMedianTempTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="24dp"
+        android:layout_marginEnd="28dp"
         android:text="Median Temp (within cursor)"
         android:visibility="visible"
+        app:layout_constraintBottom_toTopOf="@+id/textViewMedianTemp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textViewHighestTemp" />
+        app:layout_constraintTop_toBottomOf="@+id/textViewHighestTemp"
+        app:layout_constraintVertical_bias="1.0" />
 
     <TextView
         android:id="@+id/textViewBucketTempTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
+        android:layout_marginTop="16dp"
         android:text="Mean Bucket Temp"
         android:visibility="visible"
+        app:layout_constraintBottom_toTopOf="@+id/textViewBucketTemp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewTofDistance" />
 
@@ -33,22 +37,24 @@
         android:id="@+id/BleDeviceList"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:visibility="gone"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.482"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.331" />
+        app:layout_constraintTop_toBottomOf="@+id/textViewDeviceListTitle"
+        app:layout_constraintVertical_bias="0.017" />
 
     <TextView
         android:id="@+id/textViewTofDistanceTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="5dp"
         android:text="TOF Distance (mm)"
         android:visibility="visible"
+        app:layout_constraintBottom_toTopOf="@+id/textViewTofDistance"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageViewThermal" />
 
@@ -57,7 +63,7 @@
         android:layout_width="121dp"
         android:layout_height="43dp"
         android:layout_marginStart="24dp"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="5dp"
         android:gravity="center"
         android:text=""
         android:textSize="20sp"
@@ -83,34 +89,36 @@
         android:layout_width="192dp"
         android:layout_height="43dp"
         android:layout_marginEnd="20dp"
+        android:layout_marginBottom="1dp"
         android:gravity="center"
         android:text=""
         android:textSize="20sp"
         android:visibility="visible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textViewMedianTempTitle" />
+        app:layout_constraintBottom_toTopOf="@+id/textViewDebug"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
         android:id="@+id/textViewBucketTemp"
         android:layout_width="137dp"
         android:layout_height="44dp"
         android:layout_marginStart="16dp"
+        android:layout_marginBottom="1dp"
         android:gravity="center"
         android:text=""
         android:textSize="20sp"
         android:visibility="visible"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textViewBucketTempTitle" />
+        app:layout_constraintBottom_toTopOf="@+id/textViewDebug"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/textViewHighestTempTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="56dp"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="28dp"
         android:text="Highest Temp (cursor centre)"
         android:visibility="visible"
-        app:layout_constraintStart_toEndOf="@+id/textViewTofDistanceTitle"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageViewThermal" />
 
     <Button
@@ -134,6 +142,7 @@
         android:layout_marginBottom="52dp"
         android:gravity="center"
         android:text="Scan Ready"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.483"
@@ -141,13 +150,13 @@
 
     <TextView
         android:id="@+id/textViewDeviceListTitle"
-        android:layout_width="355dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="28dp"
-        android:layout_marginTop="8dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="Discovered Devices:"
         android:textSize="30sp"
-        android:visibility="gone"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -155,11 +164,10 @@
         android:id="@+id/textViewDebug"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="72dp"
         android:gravity="center"
         android:text="Please wait..."
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:visibility="visible"
+        app:layout_constraintBottom_toTopOf="@+id/buttonMultiPurpose"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -167,6 +175,7 @@
         android:id="@+id/imageViewThermal"
         android:layout_width="310dp"
         android:layout_height="400dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="@+id/buttonMultiPurpose"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.237"
@@ -180,14 +189,15 @@
         android:layout_width="50dp"
         android:layout_height="420dp"
         android:layout_marginStart="8dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="@+id/imageViewThermal"
         app:layout_constraintStart_toEndOf="@+id/imageViewThermal"
         app:layout_constraintTop_toTopOf="@+id/imageViewThermal" />
 
     <TextView
         android:id="@+id/textViewBucketTooltip"
-        android:layout_width="176dp"
-        android:layout_height="52dp"
+        android:layout_width="177dp"
+        android:layout_height="68dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
         android:text="Highlighted bucket contains the most number of pixels within the image"
